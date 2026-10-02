@@ -63,6 +63,47 @@ runs:
         sublevel: ${{ inputs.sublevel }}
         os_patch_level: ${{ inputs.os_patch_level }}
 
+    - name: Add SukiSU-Ultra SUSFS post-exec compatibility
+      if: inputs.root_flavor == 'sukisu-ultra'
+      shell: bash
+      run: |
+        set -euo pipefail
+        FILE="${{ github.workspace }}/kernel/SukiSU-Ultra/kernel/feature/sucompat.c"
+        python3 - "$FILE" <<'PY'
+        import sys
+
+        path = sys.argv[1]
+        with open(path, encoding="utf-8") as f:
+            content = f.read()
+
+        if "ksu_handle_post_execveat_sucompat" in content:
+            print("SukiSU-Ultra post-exec SUSFS compatibility already present")
+            raise SystemExit(0)
+
+        target = (
+            '    pr_info("ksu_handle_stat: su->sh!\\n");\n'
+            '    memcpy((void *)((*filename)->name), sh_path, sizeof(sh_path));\n'
+            '    return 0;\n'
+            '}\n\n'
+            '#else'
+        )
+        replacement = target[:-5] + (
+            'int ksu_handle_post_execveat_sucompat(int *__never_use_fd, struct filename **__never_use_filename_ptr,\n'
+            '                 void *__never_use_argv, void *__never_use_envp,\n'
+            '                 int *__never_use_flags, int *__never_use_retval)\n'
+            '{\n'
+            '    return 0;\n'
+            '}\n\n'
+            '#else'
+        )
+        if target not in content:
+            raise SystemExit("SukiSU-Ultra SUSFS compatibility anchor not found")
+
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content.replace(target, replacement, 1))
+        print("Added SukiSU-Ultra post-exec SUSFS compatibility")
+        PY
+
     - name: Revert SUSFS Fake Patches
       uses: ./.github/actions/susfs-revert-patches
       with:
