@@ -221,6 +221,17 @@ jobs:
         flavor: ${{ inputs.root_flavor }}
         commit: ${{ inputs.root_commit }}
 
+    - name: Pin SukiSU-Ultra version for SUSFS UAPI v2
+      if: inputs.root_flavor == 'sukisu-ultra' && contains(inputs.feature_set, 'SUSFS')
+      shell: bash
+      working-directory: ${{ github.workspace }}/kernel
+      run: |
+        set -euo pipefail
+        makefile="SukiSU-Ultra/kernel/Makefile"
+        grep -q '^KSU_VERSION[[:space:]]*:=' "$makefile"
+        sed -Ei 's/^KSU_VERSION[[:space:]]*:=.*/KSU_VERSION     := 40900/' "$makefile"
+        grep '^KSU_VERSION' "$makefile"
+
     - name: Mark No Root build metadata
       if: inputs.root_flavor == 'none'
       shell: bash
