@@ -457,6 +457,20 @@ jobs:
     - name: Remove Protected Exports
       uses: ./.github/actions/remove-protected-exports
 
+    - name: Spoof Stock Panther Build Timestamp and Config
+      shell: bash
+      working-directory: ${{ github.workspace }}/kernel/common
+      run: |
+        set -euo pipefail
+        if [ -f init/Makefile ]; then
+          sed -i 's/^build-timestamp = .*/build-timestamp = Wed Jul  8 11:53:29 UTC 2026/' init/Makefile
+          grep '^build-timestamp =' init/Makefile
+        fi
+        if [ -f kernel/Makefile ]; then
+          sed -i "s|^filechk_cat = cat \$<$|filechk_cat = sed -e '/CONFIG_KSU/d' -e '/SUSFS/d' -e '/CONFIG_KPM/d' -e 's/^CONFIG_TMPFS_POSIX_ACL=y/# CONFIG_TMPFS_POSIX_ACL is not set/' -e 's/^CONFIG_TMPFS_XATTR=y/# CONFIG_TMPFS_XATTR is not set/' \$<|" kernel/Makefile
+          grep '^filechk_cat =' kernel/Makefile
+        fi
+
     - name: Clean Kernel Flags
       uses: ./.github/actions/clean-kernel-flags
 
