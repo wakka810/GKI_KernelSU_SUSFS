@@ -467,7 +467,7 @@ jobs:
           grep '^build-timestamp =' init/Makefile
         fi
         if [ -f kernel/Makefile ]; then
-          sed -i "s|^filechk_cat = cat \$<$|filechk_cat = sed -e '/CONFIG_KSU/d' -e '/SUSFS/d' -e '/CONFIG_KPM/d' -e 's/^CONFIG_TMPFS_POSIX_ACL=y/# CONFIG_TMPFS_POSIX_ACL is not set/' -e 's/^CONFIG_TMPFS_XATTR=y/# CONFIG_TMPFS_XATTR is not set/' \$<|" kernel/Makefile
+          sed -i 's|^filechk_cat = cat $<$|filechk_cat = grep -v CONFIG_KSU $<|' kernel/Makefile
           grep '^filechk_cat =' kernel/Makefile
         fi
 
